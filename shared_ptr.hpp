@@ -87,18 +87,57 @@ public:
 
   shared_ptr(std::nullptr_t = nullptr) noexcept : _M_owner(nullptr) {}
 
-  template <class _Yp,
-            std::enable_if_t<std::is_convertible_v<_Yp *, _Tp *>, int> = 0>
+  template <class _Yp>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
   explicit shared_ptr(_Yp *__ptr)
       : _M_ptr(__ptr),
         _M_owner(new _SpCounterImpl<_Yp, DefaultDeleter<_Yp>>(__ptr)) {
     _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
   }
 
-  // TODO:
-  template <class _Yp, class _Deleter,
-            std::enable_if_t<std::is_convertible_v<_Yp *, _Tp *>, int> = 0>
-  explicit shared_ptr<>
+  template <class _Yp, class _Deleter>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  explicit shared_ptr(_Yp *__ptr, _Deleter __deleter)
+      : _M_ptr(__ptr), _M_owner(new _SpCounterImpl<_Yp, _Deleter>(
+                           __ptr, std::move(__deleter))) {
+    _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
+  }
+
+  shared_ptr(shared_ptr const &__that) noexcept
+      : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
+    if (_M_owner) {
+      _M_owner->_M_incref();
+    }
+  }
+
+  shared_ptr(shared_ptr &&__that) noexcept
+      : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
+    __that._M_ptr = nullptr;
+    __that._M_owner = nullptr;
+  }
+
+  template <class _Yp>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  shared_ptr(shared_ptr<_Yp> &&__that) noexcept
+      : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
+    __that._M_ptr = nullptr;
+    __that._M_owner = nullptr;
+  }
+
+  template <class _Yp>
+  shared_ptr(shared_ptr<_Yp> const &__that, _Tp *__ptr) noexcept
+      : _M_ptr(__ptr), _M_owner(__that._M_owner) {
+    if (_M_owner) {
+      _M_owner->_M_incref();
+    }
+  }
+
+  template <class _Yp>
+  shared_ptr(shared_ptr<_Yp> const &&__that, _Tp *__ptr) noexcept
+      : _M_ptr(__ptr), _M_owner(__that._M_owner) {
+    __that._M_ptr = nullptr;
+    __that._M_owner = nullptr;
+  }
 };
 
 } // namespace MySTL
