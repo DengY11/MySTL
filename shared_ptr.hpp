@@ -1,6 +1,7 @@
 #ifndef SHARED_PTR_HPP
 #define SHARED_PTR_HPP
 #include "default_deleter.hpp"
+#include "unique_ptr.hpp"
 #include <algorithm>
 #include <atomic>
 #include <memory>
@@ -103,7 +104,25 @@ public:
     _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
   }
 
+  template <class _Yp, class _Deleter>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  explicit shared_ptr(unique_ptr<_Yp, _Deleter> &&__ptr)
+      : shared_ptr(__ptr.release(), __ptr.get_deleter()) {}
+
+  template <class _Yp>
+  inline friend shared_ptr<_Yp>
+  _S_makeSharedFused(_Yp *__ptr, _SpCounter *__owner) noexcept;
+
   shared_ptr(shared_ptr const &__that) noexcept
+      : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
+    if (_M_owner) {
+      _M_owner->_M_incref();
+    }
+  }
+
+  template <class _Yp>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  shared_ptr(shared_ptr<_Yp> const &__that) noexcept
       : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
     if (_M_owner) {
       _M_owner->_M_incref();
@@ -138,6 +157,171 @@ public:
     __that._M_ptr = nullptr;
     __that._M_owner = nullptr;
   }
+
+  auto operator=(shared_ptr const &__that) noexcept -> shared_ptr & {
+    if (this == &__that) {
+      return *this;
+    }
+    if (this->_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_ptr = __that._M_ptr;
+    _M_owner = __that._M_owner;
+
+    if (this->_M_owner) {
+      _M_owner->_M_incref();
+    }
+    return *this;
+  }
+
+  auto operator=(shared_ptr &&__that) noexcept -> shared_ptr & {
+    if (this == &__that) {
+      return *this;
+    }
+    if (this->_M_owner) {
+      _M_owner->_M_decref();
+    }
+
+    _M_ptr = __that._M_ptr;
+    _M_owner = __that._M_owner;
+    __that._M_ptr = nullptr;
+    __that._M_owner = nullptr;
+    return *this;
+  }
+
+  template <class _Yp>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  auto operator=(shared_ptr<_Yp> const &__that) noexcept -> shared_ptr & {
+    if (this == &__that) {
+      return *this;
+    }
+    if (this->_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_ptr = __that._M_ptr;
+    _M_owner = __that._M_owner;
+
+    if (this->_M_owner) {
+      _M_owner->_M_incref();
+    }
+    return *this;
+  }
+
+  template <class _Yp>
+    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  auto operator=(shared_ptr<_Yp> &&__that) noexcept -> shared_ptr & {
+    if (this == &__that) {
+      return *this;
+    }
+    if (this->_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_ptr = __that._M_ptr;
+    _M_owner = __that._M_owner;
+    __that._M_ptr = nullptr;
+    __that._M_owner = nullptr;
+    return *this;
+  }
+
+  void reset() noexcept {
+    if (_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_owner = nullptr;
+    _M_ptr = nullptr;
+  }
+
+  template <class _Yp> void reset(_Yp *__ptr) {
+    if (_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_ptr = nullptr;
+    _M_owner = nullptr;
+    _M_ptr = __ptr;
+    _M_owner = new _SpCounterImpl<_Yp, DefaultDeleter<_Yp>>(__ptr);
+    _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
+  }
+
+  template <class _Yp, class _Deleter>
+  void reset(_Yp *__ptr, _Deleter __deleter) {
+    if (_M_owner) {
+      _M_owner->_M_decref();
+    }
+    _M_ptr = nullptr;
+    _M_owner = nullptr;
+    _M_ptr = __ptr;
+    _M_owner = new _SpCounterImpl<_Yp, _Deleter>(__ptr, std::move(__deleter));
+    _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
+  }
+
+  ~shared_ptr() noexcept {
+    if (_M_owner) {
+      _M_owner->_M_decref();
+    }
+  }
+
+  auto use_count() noexcept -> long {
+    return _M_owner ? _M_owner->_M_cntref() : 0;
+  }
+
+  auto unique() noexcept -> bool {
+    return _M_owner ? _M_owner->_M_cntref() == 1 : true;
+  }
+
+  template <class _Yp>
+  auto operator==(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr == __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto operator!=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr != __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto operator<(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr < __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto operator<=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr <= __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto operator>(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr > __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto operator>=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_ptr >= __that._M_ptr;
+  }
+
+  template <class _Yp>
+  auto owner_before(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_owner < __that._M_owner;
+  }
+
+  template <class _Yp>
+  auto owner_equal(shared_ptr<_Yp> const &__that) const noexcept -> bool {
+    return _M_owner == __that._M_owner;
+  }
+
+  void swap(shared_ptr &__that) noexcept {
+    std::swap(_M_ptr, __that._M_ptr);
+    std::swap(_M_owner, __that._M_owner);
+  }
+
+  auto get() const noexcept -> _Tp * { return _M_ptr; }
+
+  auto operator->() const noexcept -> _Tp * { return _M_ptr; }
+
+  auto operator*() const noexcept -> std::add_lvalue_reference_t<_Tp> {
+    return *_M_ptr;
+  }
+
+  explicit operator bool() const noexcept { return _M_ptr != nullptr; }
 };
 
 } // namespace MySTL
