@@ -324,6 +324,180 @@ public:
   explicit operator bool() const noexcept { return _M_ptr != nullptr; }
 };
 
+template <class _Tp>
+inline auto _S_makeSharedFused(_Tp *__ptr, _SpCounter *__owner) noexcept
+    -> shared_ptr<_Tp> {
+  return shared_ptr<_Tp>(__ptr, __owner);
+}
+
+template <class _Tp> struct shared_ptr<_Tp[]> : shared_ptr<_Tp> {
+  using shared_ptr<_Tp>::shared_ptr;
+
+  auto operator[](std::size_t __i) -> std::add_lvalue_reference<_Tp> {
+    return this->get()[__i];
+  }
+};
+
+template <class _Tp> struct enable_shared_from_this {
+private:
+  _SpCounter *_M_owner;
+
+protected:
+  enable_shared_from_this() noexcept : _M_owner(nullptr){};
+
+  auto shared_from_this() -> shared_ptr<_Tp> {
+    static_assert(std::is_base_of_v<enable_shared_from_this, _Tp>,
+                  "must be derived class");
+    if (!_M_owner) {
+      throw std::bad_weak_ptr();
+    }
+    _M_owner->_M_incref();
+    return _S_makeSharedFused(static_cast<_Tp *>(this), _M_owner);
+  }
+  auto shared_from_this() const -> shared_ptr<_Tp const> {
+    static_assert(std::is_base_of_v<enable_shared_from_this, _Tp>,
+                  "must be derived class");
+    if (!_M_owner) {
+      throw std::bad_weak_ptr();
+    }
+    _M_owner->_M_incref();
+    return _S_makeSharedFused(static_cast<_Tp const *>(this), _M_owner);
+  }
+
+  template <class _Up>
+  inline friend void
+  _S_setupEnableSharedFromThisOwner(enable_shared_from_this<_Up> *,
+                                    _SpCounter *);
+};
+
+template <class _Up>
+inline void
+_S_setupEnableSharedFromThisOwner(enable_shared_from_this<_Up> *__ptr,
+                                  _SpCounter *__owner) {
+  __ptr->_M_owner = __owner;
+}
+
+template <class _Tp>
+  requires(std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
+void _S_setupEnableSharedFromThis(_Tp *__ptr, _SpCounter *__owner) {
+  _S_setupEnableSharedFromThisOwner(
+      static_cast<enable_shared_from_this<_Tp> *>(__ptr), __owner);
+}
+
+template <class _Tp>
+  requires(!std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
+void _S_setupEnableSharedFromThis(_Tp *, _SpCounter *) {}
+
+template <class _Tp, class... _Args>
+  requires(!std::is_unbounded_array_v<_Tp>)
+auto make_shared(_Args &&...__args) -> shared_ptr<_Tp> {
+  auto const __deleter = [](_Tp *__ptr) noexcept { __ptr->~_Tp(); };
+  using _Counter = _SpCounterImplFused<_Tp, decltype(__deleter)>;
+  constexpr std::size_t __offset = std::max(alignof(_Tp), sizeof(_Counter));
+  constexpr std::size_t __align = std::max(alignof(_Tp), alignof(_Counter));
+  constexpr std::size_t __size = __offset + sizeof(_Tp);
+#if __cpp_aligned_new
+  void *__mem = ::operator new(__size, std::align_val_t(__align));
+  _Counter *__counter = reinterpret_cast<_Counter *>(__mem);
+#else
+  void *__mem = ::operator new(__size + __align);
+  _Counter *__counter =
+      reinterpret_cast<_SpC *>(reinterpret_cast<std::size_t>(__mem) & __align);
+#endif
+  _Tp *__object =
+      reinterpret_cast<_Tp *>(reinterpret_cast<char *>(__counter) + __offset);
+  try {
+    new (__object) _Tp(std::forward<_Args>(__args)...);
+  } catch (...) {
+#if __cpp_aligned_new
+    ::operator delete(__mem, std::align_val_t(__align));
+#else
+    ::operator delete(__mem);
+#endif
+    throw;
+  }
+  new (__counter) _Counter(__object, __mem, __deleter);
+  _S_setupEnableSharedFromThis(__object, __counter);
+  return _S_makeSharedFused(__object, __counter);
+}
+template <class _Tp>
+  requires(!std::is_unbounded_array_v<_Tp>)
+auto make_shared_for_over_write() -> shared_ptr<_Tp> {
+  auto const __deleter = [](_Tp *__ptr) noexcept { __ptr->~_Tp(); };
+  using _Counter = _SpCounterImplFused<_Tp, decltype(__deleter)>;
+  constexpr std::size_t __offset = std::max(alignof(_Tp), sizeof(_Counter));
+  constexpr std::size_t __align = std::max(alignof(_Tp), alignof(_Counter));
+  constexpr std::size_t __size = __offset + sizeof(_Tp);
+#if __cpp_aligned_new
+  void *__mem = ::operator new(__size, std::align_val_t(__align));
+  _Counter *__counter = reinterpret_cast<_Counter *>(__mem);
+#else
+  void *__mem = ::operator new(__size + __align);
+  _SpC *__counter =
+      reinterpret_cast<_SpC *>(reinterpret_cast<std::size_t>(__mem) & __align);
+#endif
+  _Tp *__object =
+      reinterpret_cast<_Tp *>(reinterpret_cast<char *>(__counter) + __offset);
+  try {
+    new (__object) _Tp;
+  } catch (...) {
+#if __cpp_aligned_new
+    ::operator delete(__mem, std::align_val_t(__align));
+#else
+    ::operator delete(__mem);
+#endif
+    throw;
+  }
+  new (__counter) _Counter(__object, __mem, __deleter);
+  _S_setupEnableSharedFromThis(__object, __counter);
+  return _S_makeSharedFused(__object, __counter);
+}
+
+template <class _Tp, class... _Args>
+  requires(std::is_unbounded_array_v<_Tp>)
+auto make_shared(std::size_t __len) -> shared_ptr<_Tp> {
+  std::remove_extent_t<_Tp> *__p = new std::remove_extent_t<_Tp>[__len];
+  try {
+    return SharedPtr<_Tp>(__p);
+  } catch (...) {
+    delete[] __p;
+    throw;
+  }
+}
+
+template <class _Tp>
+  requires(std::is_unbounded_array_v<_Tp>)
+auto makeSharedForOverwrite(std::size_t __len) -> shared_ptr<_Tp> {
+  std::remove_extent_t<_Tp> *__p = new std::remove_extent_t<_Tp>[__len];
+  try {
+    return SharedPtr<_Tp>(__p);
+  } catch (...) {
+    delete[] __p;
+    throw;
+  }
+}
+
+template <class _Tp, class _Up>
+auto static_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
+  return shared_ptr<_Tp>(__ptr, static_cast<_Tp *>(__ptr.get()));
+}
+
+template <class _Tp, class _Up>
+auto const_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
+  return shared_ptr<_Tp>(__ptr, const_cast<_Tp *>(__ptr.get()));
+}
+
+template <class _Tp, class _Up>
+auto dynamic_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
+  _Tp *__p = dynamic_cast<_Tp *>(__ptr.get());
+  return __p != nullptr ? shared_ptr<_Tp>(__ptr, __p) : nullptr;
+}
+
+template <class _Tp, class _Up>
+auto reinterpret_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
+  return shared_ptr<_Tp>(__ptr, reinterpret_cast<_Tp *>(__ptr.get()));
+}
+
 } // namespace MySTL
 
 #endif
