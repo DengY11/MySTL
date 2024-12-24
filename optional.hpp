@@ -3,7 +3,6 @@
 
 #include <exception>
 #include <initializer_list>
-#include <optional>
 #include <type_traits>
 namespace MySTL {
 
@@ -218,7 +217,187 @@ public:
   auto operator->() const noexcept -> T const * { return &m_value; }
 
   auto operator->() noexcept -> T * { return &m_value; }
+
+  auto value_or(T default_value) const & -> T {
+    if (!m_has_value) {
+      return default_value;
+    }
+    return m_value;
+  }
+
+  auto value_or(T default_value) && noexcept -> T {
+    if (!m_has_value) {
+      return default_value;
+    }
+    return std::move(m_value);
+  }
+
+  auto operator==(optional<T> const &that) const noexcept -> bool {
+    if (m_has_value != that.m_has_value) {
+      return false;
+    }
+    if (m_has_value) {
+      return m_value == that.m_value;
+    }
+    return true;
+  }
+
+  auto operator!=(optional<T> const &that) const noexcept -> bool {
+    if (m_has_value != that.m_has_value) {
+      return false;
+    }
+    if (m_has_value) {
+      return m_value != that.m_value;
+    }
+    return false;
+  }
+
+  auto operator<(optional const &that) const noexcept -> bool {
+    if (!m_has_value || !that.m_has_value) {
+      return false;
+    }
+    return m_value < that.m_value;
+  }
+
+  auto operator>(optional const &that) const noexcept -> bool {
+    if (!m_has_value || !that.m_has_value) {
+      return false;
+    }
+    return m_value > that.m_value;
+  }
+
+  auto operator>=(optional const &that) const noexcept -> bool {
+    if (!m_has_value || !that.m_has_value) {
+      return false;
+    }
+    return m_value >= that.m_value;
+  }
+
+  auto operator<=(optional const &that) const noexcept -> bool {
+    if (!m_has_value || !that.m_has_value) {
+      return false;
+    }
+    return m_value <= that.m_value;
+  }
+
+  template <class F>
+  auto and_then(F &&f) const & -> std::remove_cvref_t<decltype(f(m_value))> {
+    if (m_has_value) {
+      return std::forward<F>(f)(m_value);
+    } else {
+      return std::remove_cvref_t<decltype(f(m_value))>{};
+    }
+  }
+
+  template <class F>
+  auto and_then(F &&f) & -> std::remove_cvref_t<decltype(f(m_value))> {
+    if (m_has_value) {
+      return std::forward<F>(f)(m_value);
+    } else {
+      return std::remove_cvref_t<decltype(f(m_value))>{};
+    }
+  }
+
+  template <class F>
+  auto and_then(F &&f) const && -> std::remove_cvref_t<decltype(f(m_value))> {
+    if (m_has_value) {
+      return std::forward<F>(f)(std::move(m_value));
+    } else {
+      return std::remove_cvref_t<decltype(f(std::move(m_value)))>{};
+    }
+  }
+
+  template <class F>
+  auto and_then(F &&f) && -> std::remove_cvref_t<decltype(f(m_value))> {
+    if (m_has_value) {
+      return std::forward<F>(f)(std::move(m_value));
+    } else {
+      return std::remove_cvref_t<decltype(f(std::move(m_value)))>{};
+    }
+  }
+
+  template <class F>
+  auto transform(
+      F &&f) const & -> optional<std::remove_cvref_t<decltype(f(m_value))>> {
+    if (m_has_value) {
+      return std::forward<F>(f)(m_value);
+    } else {
+      return nullopt;
+    }
+  }
+
+  template <class F>
+  auto
+  transform(F &&f) & -> optional<std::remove_cvref_t<decltype(f(m_value))>> {
+    if (m_has_value) {
+      return std::forward<F>(f)(m_value);
+    } else {
+      return nullopt;
+    }
+  }
+
+  template <class F>
+  auto transform(F &&f) const
+      && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
+    if (m_has_value) {
+      return std::forward<F>(f)(std::move(m_value));
+    } else {
+      return nullopt;
+    }
+  }
+
+  template <class F>
+  auto transform(F &&f)
+      && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
+    if (m_has_value) {
+      return std::forward<F>(f)(std::move(m_value));
+    } else {
+      return nullopt;
+    }
+  }
+
+  template <class F>
+    requires(std::is_move_constructible_v<T>)
+  auto or_else(F &&f) && -> optional {
+    if (m_has_value) {
+      return std::move(*this);
+    } else {
+      return std::forward<F>(f)();
+    }
+  }
+
+  template <class F>
+    requires(std::is_move_constructible_v<T>)
+  auto or_else(F &&f) const & -> optional {
+    if (m_has_value) {
+      return std::move(*this);
+    } else {
+      return std::forward<F>(f)();
+    }
+  }
+
+  void swap(optional &that) noexcept {
+    if (m_has_value && that.m_has_value) {
+      using std::swap;
+      swap(m_value, that.m_value);
+    } else if (!m_has_value && !that.m_has_value) {
+      //
+    } else if (m_has_value) {
+      that.emplace(std::move(m_value));
+    } else {
+      emplace(std::move(that.m_value));
+      that.reset();
+    }
+  }
 };
+
+template <class T> auto make_optional(T value) {
+  return optional<T>(std::move(value));
+}
+
+#if __cpp_deduction_guides
+template <class T> optional(T) -> optional<T>;
+#endif
 
 } // namespace MySTL
 
