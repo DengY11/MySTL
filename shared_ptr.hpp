@@ -86,7 +86,8 @@ public:
   using element_type = _Tp;
   using element_pointer = _Tp *;
 
-  shared_ptr(std::nullptr_t = nullptr) noexcept : _M_owner(nullptr) {}
+  shared_ptr(std::nullptr_t = nullptr) noexcept
+      : _M_owner(nullptr), _M_ptr(nullptr) {}
 
   template <class _Yp>
     requires(std::is_convertible_v<_Yp *, _Tp *>)

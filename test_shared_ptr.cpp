@@ -1,71 +1,143 @@
 #include "shared_ptr.hpp"
-#include <iostream>
-#include <memory>
+#include <gtest/gtest.h>
+#include <string>
 
-struct MyClass {
+using namespace MySTL;
+
+// 测试默认构造函数
+TEST(SharedPtrTest, DefaultConstructor) {
+  shared_ptr<int> sp;
+  EXPECT_EQ(sp.get(), nullptr);
+  EXPECT_EQ(sp.use_count(), 0);
+  EXPECT_FALSE(sp);
+}
+
+// 测试原始指针构造函数
+TEST(SharedPtrTest, ConstructorWithRawPointer) {
+  shared_ptr<int> sp(new int(42));
+  EXPECT_NE(sp.get(), nullptr);
+  EXPECT_EQ(*sp, 42);
+  EXPECT_EQ(sp.use_count(), 1);
+  EXPECT_TRUE(sp);
+}
+
+// 测试拷贝构造函数
+TEST(SharedPtrTest, CopyConstructor) {
+  shared_ptr<int> sp1(new int(42));
+  shared_ptr<int> sp2(sp1);
+  EXPECT_EQ(sp1.get(), sp2.get());
+  EXPECT_EQ(sp1.use_count(), 2);
+  EXPECT_EQ(sp2.use_count(), 2);
+}
+
+// 测试移动构造函数
+TEST(SharedPtrTest, MoveConstructor) {
+  shared_ptr<int> sp1(new int(42));
+  shared_ptr<int> sp2(std::move(sp1));
+  EXPECT_EQ(sp2.use_count(), 1);
+  EXPECT_EQ(*sp2, 42);
+  EXPECT_EQ(sp1.get(), nullptr);
+  EXPECT_EQ(sp1.use_count(), 0);
+}
+
+// 测试拷贝赋值运算符
+TEST(SharedPtrTest, CopyAssignmentOperator) {
+  shared_ptr<int> sp1(new int(42));
+  shared_ptr<int> sp2;
+  sp2 = sp1;
+  EXPECT_EQ(sp1.get(), sp2.get());
+  EXPECT_EQ(sp1.use_count(), 2);
+  EXPECT_EQ(sp2.use_count(), 2);
+}
+
+// 测试移动赋值运算符
+TEST(SharedPtrTest, MoveAssignmentOperator) {
+  shared_ptr<int> sp1(new int(42));
+  shared_ptr<int> sp2;
+  sp2 = std::move(sp1);
+  EXPECT_EQ(sp2.use_count(), 1);
+  EXPECT_EQ(*sp2, 42);
+  EXPECT_EQ(sp1.get(), nullptr);
+  EXPECT_EQ(sp1.use_count(), 0);
+}
+
+// 测试 reset 函数
+TEST(SharedPtrTest, ResetFunction) {
+  shared_ptr<int> sp(new int(42));
+  EXPECT_EQ(sp.use_count(), 1);
+  sp.reset();
+  EXPECT_EQ(sp.get(), nullptr);
+  EXPECT_EQ(sp.use_count(), 0);
+}
+
+// 测试 use_count 和 unique
+TEST(SharedPtrTest, UseCountAndUnique) {
+  shared_ptr<int> sp(new int(42));
+  EXPECT_EQ(sp.use_count(), 1);
+  EXPECT_TRUE(sp.unique());
+  shared_ptr<int> sp2(sp);
+  EXPECT_EQ(sp.use_count(), 2);
+  EXPECT_FALSE(sp.unique());
+}
+
+// 测试数组支持
+TEST(SharedPtrTest, ArraySupport) {
+  shared_ptr<int[]> sp(new int[3]{1, 2, 3});
+  EXPECT_EQ(sp.get()[0], 1);
+  EXPECT_EQ(sp.get()[1], 2);
+  EXPECT_EQ(sp.get()[2], 3);
+  sp.get()[0] = 10;
+  EXPECT_EQ(sp.get()[0], 10);
+}
+
+// 测试 enable_shared_from_this
+struct MyClass : public enable_shared_from_this<MyClass> {
   int value;
-  MyClass(int v) : value(v) {
-    std::cout << "MyClass(" << value << ") created.\n";
-  }
-  ~MyClass() { std::cout << "MyClass(" << value << ") destroyed.\n"; }
+  MyClass(int v) : value(v) {}
 };
 
-void test_shared_ptr_basic() {
-  std::cout << "Testing shared_ptr basic functionality\n";
-
-  // 创建 shared_ptr
-  MyClass *ptr = new MyClass(42);
-  MySTL::shared_ptr<MyClass> sp1(ptr);
-  std::cout << "use_count after construction: " << sp1.use_count() << "\n";
-
-  // 拷贝构造
-  MySTL::shared_ptr<MyClass> sp2 = sp1;
-  std::cout << "use_count after copy: " << sp1.use_count() << "\n";
-
-  // 移动构造
-  MySTL::shared_ptr<MyClass> sp3 = std::move(sp2);
-  std::cout << "use_count after move: " << sp1.use_count() << "\n";
-
-  // 重置 shared_ptr
-  sp1.reset();
-  std::cout << "use_count after reset: " << sp1.use_count() << "\n";
+// 测试 make_shared
+TEST(SharedPtrTest, MakeShared) {
+  auto sp = make_shared<int>(42);
+  EXPECT_EQ(*sp, 42);
+  EXPECT_EQ(sp.use_count(), 1);
 }
 
-void test_make_shared() {
-  std::cout << "Testing make_shared\n";
-
-  // 使用 make_shared 创建 shared_ptr
-  auto sp1 = MySTL::make_shared<MyClass>(10);
-  std::cout << "use_count after make_shared: " << sp1.use_count() << "\n";
-
-  // 测试其他类型的对象
-  auto sp3 = MySTL::make_shared<int>(42);
-  std::cout << "use_count for int: " << sp3.use_count() << "\n";
+// 测试 static_pointer_cast
+TEST(SharedPtrTest, StaticPointerCast) {
+  shared_ptr<void> sp = make_shared<int>(42);
+  auto spInt = static_pointer_cast<int>(sp);
+  EXPECT_EQ(*spInt, 42);
+  EXPECT_EQ(sp.use_count(), spInt.use_count());
 }
 
-void test_owner_comparison() {
-  std::cout << "Testing owner_before and owner_equal\n";
+// 测试 dynamic_pointer_cast
+TEST(SharedPtrTest, DynamicPointerCast) {
+  struct Base {
+    virtual ~Base() = default;
+  };
+  struct Derived : public Base {
+    int value;
+    Derived(int v) : value(v) {}
+  };
 
-  auto sp1 = MySTL::make_shared<int>(100);
-  auto sp2 = MySTL::make_shared<int>(200);
-
-  if (sp1.owner_before(sp2)) {
-    std::cout << "sp1's owner is before sp2's owner.\n";
-  } else {
-    std::cout << "sp1's owner is NOT before sp2's owner.\n";
-  }
-
-  if (sp1.owner_equal(sp2)) {
-    std::cout << "sp1's owner is the same as sp2's owner.\n";
-  } else {
-    std::cout << "sp1's owner is NOT the same as sp2's owner.\n";
-  }
+  shared_ptr<Base> spBase = make_shared<Derived>(42);
+  auto spDerived = dynamic_pointer_cast<Derived>(spBase);
+  EXPECT_EQ(spDerived->value, 42);
+  EXPECT_EQ(spBase.use_count(), spDerived.use_count());
 }
 
-int main() {
-  test_shared_ptr_basic();
-  test_make_shared();
-  test_owner_comparison();
+// 测试 const_pointer_cast
+TEST(SharedPtrTest, ConstPointerCast) {
+  shared_ptr<const int> spConst = make_shared<int>(42);
+  auto spNonConst = const_pointer_cast<int>(spConst);
+  *spNonConst = 10;
+  EXPECT_EQ(*spConst, 10);
+}
 
-  return 0;
+// 测试 reinterpret_pointer_cast
+TEST(SharedPtrTest, ReinterpretPointerCast) {
+  shared_ptr<int> sp = make_shared<int>(42);
+  auto spReinterpret = reinterpret_pointer_cast<void>(sp);
+  EXPECT_EQ(sp.use_count(), spReinterpret.use_count());
 }

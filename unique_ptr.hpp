@@ -42,7 +42,7 @@ public:
   unique_ptr &operator=(unique_ptr const &__that) = delete;
 
   unique_ptr(unique_ptr &&__that) noexcept : _M_p(__that._M_p) {
-    __that._M_p == nullptr;
+    __that._M_p = nullptr;
   }
 
   unique_ptr &operator=(unique_ptr &&__that) noexcept {
@@ -109,9 +109,7 @@ template <class _Tp, class _Deleter>
 struct unique_ptr<_Tp[], _Deleter> : unique_ptr<_Tp, _Deleter> {
   using unique_ptr<_Tp, _Deleter>::unique_ptr; // 继承构造函数
 
-  std::add_lvalue_reference<_Tp> operator[](std::size_t __i) {
-    return this->get()[__i];
-  }
+  _Tp &operator[](std::size_t __i) const noexcept { return this->get()[__i]; }
 };
 
 template <class _Tp, class... _Args>
