@@ -5,12 +5,12 @@
 
 namespace MySTL {
 
-template <class _Tp> struct DefaultDeleter {
+template<class _Tp> struct DefaultDeleter {
 
   void operator()(_Tp *p) const { delete p; }
 };
 
-template <class _Tp> struct DefaultDeleter<_Tp[]> {
+template<class _Tp> struct DefaultDeleter<_Tp[]> {
   void operator()(_Tp *p) const { delete[] p; }
 };
 

@@ -1,6 +1,6 @@
 #ifndef SHARED_PTR_HPP
 #define SHARED_PTR_HPP
-#include "default_deleter.hpp"
+#include "include/default_deleter.hpp"
 #include "unique_ptr.hpp"
 #include <algorithm>
 #include <atomic>
@@ -15,7 +15,7 @@ struct _SpCounter {
 
   std::atomic<long> _M_refcnt;
 
-  _SpCounter() noexcept : _M_refcnt(1){};
+  _SpCounter() noexcept: _M_refcnt(1) {};
 
   _SpCounter(_SpCounter &&) = delete;
 
@@ -36,13 +36,13 @@ struct _SpCounter {
   virtual ~_SpCounter() = default;
 };
 
-template <class _Tp, class _Deleter> struct _SpCounterImpl final : _SpCounter {
+template<class _Tp, class _Deleter> struct _SpCounterImpl final : _SpCounter {
 
   _Tp *_M_ptr;
 
   [[no_unique_address]] _Deleter _M_deleter;
 
-  explicit _SpCounterImpl(_Tp *__ptr) noexcept : _M_ptr(__ptr) {}
+  explicit _SpCounterImpl(_Tp *__ptr) noexcept: _M_ptr(__ptr) {}
 
   explicit _SpCounterImpl(_Tp *__ptr, _Deleter __deleter) noexcept
       : _M_ptr(__ptr), _M_deleter(std::move(__deleter)) {}
@@ -50,7 +50,7 @@ template <class _Tp, class _Deleter> struct _SpCounterImpl final : _SpCounter {
   ~_SpCounterImpl() noexcept override { _M_deleter(_M_ptr); }
 };
 
-template <class _Tp, class _Deleter>
+template<class _Tp, class _Deleter>
 struct _SpCounterImplFused final : _SpCounter {
   _Tp *_M_ptr;
   void *_M_mem;
@@ -72,12 +72,12 @@ struct _SpCounterImplFused final : _SpCounter {
   }
 };
 
-template <class _Tp> struct shared_ptr {
+template<class _Tp> struct shared_ptr {
 private:
   _Tp *_M_ptr;
   _SpCounter *_M_owner;
 
-  template <class> friend struct shared_ptr;
+  template<class> friend struct shared_ptr;
 
   explicit shared_ptr(_Tp *__ptr, _SpCounter *__owner) noexcept
       : _M_ptr(__ptr), _M_owner(__owner) {}
@@ -89,28 +89,28 @@ public:
   shared_ptr(std::nullptr_t = nullptr) noexcept
       : _M_owner(nullptr), _M_ptr(nullptr) {}
 
-  template <class _Yp>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   explicit shared_ptr(_Yp *__ptr)
       : _M_ptr(__ptr),
         _M_owner(new _SpCounterImpl<_Yp, DefaultDeleter<_Yp>>(__ptr)) {
     _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
   }
 
-  template <class _Yp, class _Deleter>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp, class _Deleter>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   explicit shared_ptr(_Yp *__ptr, _Deleter __deleter)
       : _M_ptr(__ptr), _M_owner(new _SpCounterImpl<_Yp, _Deleter>(
-                           __ptr, std::move(__deleter))) {
+      __ptr, std::move(__deleter))) {
     _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
   }
 
-  template <class _Yp, class _Deleter>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp, class _Deleter>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   explicit shared_ptr(unique_ptr<_Yp, _Deleter> &&__ptr)
       : shared_ptr(__ptr.release(), __ptr.get_deleter()) {}
 
-  template <class _Yp>
+  template<class _Yp>
   inline friend shared_ptr<_Yp>
   _S_makeSharedFused(_Yp *__ptr, _SpCounter *__owner) noexcept;
 
@@ -121,8 +121,8 @@ public:
     }
   }
 
-  template <class _Yp>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   shared_ptr(shared_ptr<_Yp> const &__that) noexcept
       : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
     if (_M_owner) {
@@ -136,15 +136,15 @@ public:
     __that._M_owner = nullptr;
   }
 
-  template <class _Yp>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   shared_ptr(shared_ptr<_Yp> &&__that) noexcept
       : _M_ptr(__that._M_ptr), _M_owner(__that._M_owner) {
     __that._M_ptr = nullptr;
     __that._M_owner = nullptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   shared_ptr(shared_ptr<_Yp> const &__that, _Tp *__ptr) noexcept
       : _M_ptr(__ptr), _M_owner(__that._M_owner) {
     if (_M_owner) {
@@ -152,7 +152,7 @@ public:
     }
   }
 
-  template <class _Yp>
+  template<class _Yp>
   shared_ptr(shared_ptr<_Yp> const &&__that, _Tp *__ptr) noexcept
       : _M_ptr(__ptr), _M_owner(__that._M_owner) {
     __that._M_ptr = nullptr;
@@ -190,8 +190,8 @@ public:
     return *this;
   }
 
-  template <class _Yp>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   auto operator=(shared_ptr<_Yp> const &__that) noexcept -> shared_ptr & {
     if (this == &__that) {
       return *this;
@@ -208,8 +208,8 @@ public:
     return *this;
   }
 
-  template <class _Yp>
-    requires(std::is_convertible_v<_Yp *, _Tp *>)
+  template<class _Yp>
+  requires(std::is_convertible_v<_Yp *, _Tp *>)
   auto operator=(shared_ptr<_Yp> &&__that) noexcept -> shared_ptr & {
     if (this == &__that) {
       return *this;
@@ -232,7 +232,7 @@ public:
     _M_ptr = nullptr;
   }
 
-  template <class _Yp> void reset(_Yp *__ptr) {
+  template<class _Yp> void reset(_Yp *__ptr) {
     if (_M_owner) {
       _M_owner->_M_decref();
     }
@@ -243,7 +243,7 @@ public:
     _S_setupEnableSharedFromThis(_M_ptr, _M_owner);
   }
 
-  template <class _Yp, class _Deleter>
+  template<class _Yp, class _Deleter>
   void reset(_Yp *__ptr, _Deleter __deleter) {
     if (_M_owner) {
       _M_owner->_M_decref();
@@ -269,42 +269,42 @@ public:
     return _M_owner ? _M_owner->_M_cntref() == 1 : true;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator==(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr == __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator!=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr != __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator<(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr < __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator<=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr <= __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator>(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr > __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto operator>=(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_ptr >= __that._M_ptr;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto owner_before(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_owner < __that._M_owner;
   }
 
-  template <class _Yp>
+  template<class _Yp>
   auto owner_equal(shared_ptr<_Yp> const &__that) const noexcept -> bool {
     return _M_owner == __that._M_owner;
   }
@@ -325,13 +325,13 @@ public:
   explicit operator bool() const noexcept { return _M_ptr != nullptr; }
 };
 
-template <class _Tp>
+template<class _Tp>
 inline auto _S_makeSharedFused(_Tp *__ptr, _SpCounter *__owner) noexcept
-    -> shared_ptr<_Tp> {
-  return shared_ptr<_Tp>(__ptr, __owner);
+-> shared_ptr<_Tp> {
+  return shared_ptr < _Tp > (__ptr, __owner);
 }
 
-template <class _Tp> struct shared_ptr<_Tp[]> : shared_ptr<_Tp> {
+template<class _Tp> struct shared_ptr<_Tp[]> : shared_ptr<_Tp> {
   using shared_ptr<_Tp>::shared_ptr;
 
   auto operator[](std::size_t __i) -> std::add_lvalue_reference<_Tp> {
@@ -339,12 +339,12 @@ template <class _Tp> struct shared_ptr<_Tp[]> : shared_ptr<_Tp> {
   }
 };
 
-template <class _Tp> struct enable_shared_from_this {
+template<class _Tp> struct enable_shared_from_this {
 private:
   _SpCounter *_M_owner;
 
 protected:
-  enable_shared_from_this() noexcept : _M_owner(nullptr){};
+  enable_shared_from_this() noexcept: _M_owner(nullptr) {};
 
   auto shared_from_this() -> shared_ptr<_Tp> {
     static_assert(std::is_base_of_v<enable_shared_from_this, _Tp>,
@@ -365,32 +365,32 @@ protected:
     return _S_makeSharedFused(static_cast<_Tp const *>(this), _M_owner);
   }
 
-  template <class _Up>
+  template<class _Up>
   inline friend void
   _S_setupEnableSharedFromThisOwner(enable_shared_from_this<_Up> *,
                                     _SpCounter *);
 };
 
-template <class _Up>
+template<class _Up>
 inline void
 _S_setupEnableSharedFromThisOwner(enable_shared_from_this<_Up> *__ptr,
                                   _SpCounter *__owner) {
   __ptr->_M_owner = __owner;
 }
 
-template <class _Tp>
-  requires(std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
+template<class _Tp>
+requires(std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
 void _S_setupEnableSharedFromThis(_Tp *__ptr, _SpCounter *__owner) {
   _S_setupEnableSharedFromThisOwner(
       static_cast<enable_shared_from_this<_Tp> *>(__ptr), __owner);
 }
 
-template <class _Tp>
-  requires(!std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
+template<class _Tp>
+requires(!std::is_base_of_v<enable_shared_from_this<_Tp>, _Tp>)
 void _S_setupEnableSharedFromThis(_Tp *, _SpCounter *) {}
 
-template <class _Tp, class... _Args>
-  requires(!std::is_unbounded_array_v<_Tp>)
+template<class _Tp, class... _Args>
+requires(!std::is_unbounded_array_v<_Tp>)
 auto make_shared(_Args &&...__args) -> shared_ptr<_Tp> {
   auto const __deleter = [](_Tp *__ptr) noexcept { __ptr->~_Tp(); };
   using _Counter = _SpCounterImplFused<_Tp, decltype(__deleter)>;
@@ -408,7 +408,7 @@ auto make_shared(_Args &&...__args) -> shared_ptr<_Tp> {
   _Tp *__object =
       reinterpret_cast<_Tp *>(reinterpret_cast<char *>(__counter) + __offset);
   try {
-    new (__object) _Tp(std::forward<_Args>(__args)...);
+    new(__object) _Tp(std::forward<_Args>(__args)...);
   } catch (...) {
 #if __cpp_aligned_new
     ::operator delete(__mem, std::align_val_t(__align));
@@ -417,12 +417,12 @@ auto make_shared(_Args &&...__args) -> shared_ptr<_Tp> {
 #endif
     throw;
   }
-  new (__counter) _Counter(__object, __mem, __deleter);
+  new(__counter) _Counter(__object, __mem, __deleter);
   _S_setupEnableSharedFromThis(__object, __counter);
   return _S_makeSharedFused(__object, __counter);
 }
-template <class _Tp>
-  requires(!std::is_unbounded_array_v<_Tp>)
+template<class _Tp>
+requires(!std::is_unbounded_array_v<_Tp>)
 auto make_shared_for_over_write() -> shared_ptr<_Tp> {
   auto const __deleter = [](_Tp *__ptr) noexcept { __ptr->~_Tp(); };
   using _Counter = _SpCounterImplFused<_Tp, decltype(__deleter)>;
@@ -440,7 +440,7 @@ auto make_shared_for_over_write() -> shared_ptr<_Tp> {
   _Tp *__object =
       reinterpret_cast<_Tp *>(reinterpret_cast<char *>(__counter) + __offset);
   try {
-    new (__object) _Tp;
+    new(__object) _Tp;
   } catch (...) {
 #if __cpp_aligned_new
     ::operator delete(__mem, std::align_val_t(__align));
@@ -449,13 +449,13 @@ auto make_shared_for_over_write() -> shared_ptr<_Tp> {
 #endif
     throw;
   }
-  new (__counter) _Counter(__object, __mem, __deleter);
+  new(__counter) _Counter(__object, __mem, __deleter);
   _S_setupEnableSharedFromThis(__object, __counter);
   return _S_makeSharedFused(__object, __counter);
 }
 
-template <class _Tp, class... _Args>
-  requires(std::is_unbounded_array_v<_Tp>)
+template<class _Tp, class... _Args>
+requires(std::is_unbounded_array_v<_Tp>)
 auto make_shared(std::size_t __len) -> shared_ptr<_Tp> {
   std::remove_extent_t<_Tp> *__p = new std::remove_extent_t<_Tp>[__len];
   try {
@@ -466,8 +466,8 @@ auto make_shared(std::size_t __len) -> shared_ptr<_Tp> {
   }
 }
 
-template <class _Tp>
-  requires(std::is_unbounded_array_v<_Tp>)
+template<class _Tp>
+requires(std::is_unbounded_array_v<_Tp>)
 auto makeSharedForOverwrite(std::size_t __len) -> shared_ptr<_Tp> {
   std::remove_extent_t<_Tp> *__p = new std::remove_extent_t<_Tp>[__len];
   try {
@@ -478,23 +478,23 @@ auto makeSharedForOverwrite(std::size_t __len) -> shared_ptr<_Tp> {
   }
 }
 
-template <class _Tp, class _Up>
+template<class _Tp, class _Up>
 auto static_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
   return shared_ptr<_Tp>(__ptr, static_cast<_Tp *>(__ptr.get()));
 }
 
-template <class _Tp, class _Up>
+template<class _Tp, class _Up>
 auto const_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
   return shared_ptr<_Tp>(__ptr, const_cast<_Tp *>(__ptr.get()));
 }
 
-template <class _Tp, class _Up>
+template<class _Tp, class _Up>
 auto dynamic_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
   _Tp *__p = dynamic_cast<_Tp *>(__ptr.get());
   return __p != nullptr ? shared_ptr<_Tp>(__ptr, __p) : nullptr;
 }
 
-template <class _Tp, class _Up>
+template<class _Tp, class _Up>
 auto reinterpret_pointer_cast(shared_ptr<_Up> const &__ptr) -> shared_ptr<_Tp> {
   return shared_ptr<_Tp>(__ptr, reinterpret_cast<_Tp *>(__ptr.get()));
 }

@@ -8,7 +8,7 @@
 namespace MySTL {
 template<class _Fnsig>
 struct move_only_function {
-  static_assert(!std::is_same_v <_Fnsig, _Fnsig>,"not a valid function signature");
+  static_assert(!std::is_same_v<_Fnsig, _Fnsig>, "not a valid function signature");
 };
 
 template<class _Ret, class ..._Args>
@@ -24,26 +24,26 @@ private:
     _Fn _M_f;
 
     template<class ... _CArgs>
-    explicit _FuncImpl(std::in_place_t, _CArgs &&... __args):_M_f(std::forward(__args)...) {}
+    explicit _FuncImpl(std::in_place_t, _CArgs &&... __args):_M_f(std::forward<_CArgs>(__args)...) {}
 
     auto _M_call(_Args ...__args) -> _Ret override {
       return std::invoke(_M_f, std::forward<_Args>(__args));
     }
   };
 
-  std::unique_ptr <_FuncBase> _M_base;
+  std::unique_ptr<_FuncBase> _M_base;
 
 public:
   move_only_function() = default;
   move_only_function(std::nullptr_t)
-  noexcept: move_only_function(){}
+  noexcept: move_only_function() {}
 
   template<class _Fn>
   requires std::is_invocable_r_v<_Ret, _Fn &, _Args...>
   move_only_function(_Fn __f) : _M_base(std::make_unique<_FuncImpl<_Fn>>(std::in_place, std::move(__f)));
 
   template<class _Fn, class ..._CArgs>
-  explicit move_only_function(std::in_place_type_t <_Fn>, _CArgs &&... __args):_M_base(std::make_unique<_FuncImpl<_Fn>>(
+  explicit move_only_function(std::in_place_type_t<_Fn>, _CArgs &&... __args):_M_base(std::make_unique<_FuncImpl<_Fn>>(
       std::in_place,
       std::forward<_CArgs>(__args)...)) {}
 

@@ -25,7 +25,7 @@ struct in_place_t {
 
 constexpr in_place_t in_place;
 
-template <class T> struct optional {
+template<class T> struct optional {
 private:
   bool m_has_value;
   union {
@@ -33,33 +33,33 @@ private:
   };
 
 public:
-  optional(T &&value) noexcept : m_has_value(true), m_value(std::move(value)) {}
+  optional(T &&value) noexcept: m_has_value(true), m_value(std::move(value)) {}
 
   optional(const T &value) noexcept
       : m_has_value(true), m_value(std::move(value)) {}
 
-  optional() noexcept : m_has_value(false) {}
+  optional() noexcept: m_has_value(false) {}
 
-  optional(nullopt_t) noexcept : m_has_value(false) {}
+  optional(nullopt_t) noexcept: m_has_value(false) {}
 
-  template <class... Ts>
+  template<class... Ts>
   explicit optional(in_place_t, Ts &&...value_args)
       : m_has_value(true), m_value(std::forward<Ts>(value_args)...) {}
 
-  template <class U, class... Ts>
+  template<class U, class... Ts>
   explicit optional(in_place_t, std::initializer_list<U> ilist,
                     Ts &&...value_args)
       : m_has_value(true), m_value(ilist, std::forward<Ts>(value_args)...) {}
 
   optional(optional const &that) : m_has_value(that.m_has_value) {
     if (m_has_value) {
-      new (&m_value) T(that.m_value);
+      new(&m_value) T(that.m_value);
     }
   }
 
-  optional(optional &&that) noexcept : m_has_value(that.m_has_value) {
+  optional(optional &&that) noexcept: m_has_value(that.m_has_value) {
     if (m_has_value) {
-      new (&m_value) T(std::move(that.m_value));
+      new(&m_value) T(std::move(that.m_value));
     }
   }
 
@@ -76,7 +76,7 @@ public:
       m_value.~T();
       m_has_value = false;
     }
-    new (&m_value) T(std::move(value));
+    new(&m_value) T(std::move(value));
     m_has_value = true;
     return *this;
   }
@@ -86,7 +86,7 @@ public:
       m_value.~T();
       m_has_value = false;
     }
-    new (&m_value) T(value);
+    new(&m_value) T(value);
     m_has_value = true;
     return *this;
   }
@@ -102,7 +102,7 @@ public:
     }
 
     if (that.m_has_value) {
-      new (&m_value) T(that.m_value);
+      new(&m_value) T(that.m_value);
     }
     m_has_value = that.m_has_value;
     return *this;
@@ -119,7 +119,7 @@ public:
     }
 
     if (that.m_has_value) {
-      new (&m_value) T(that.m_value);
+      new(&m_value) T(that.m_value);
       that.m_value.~T();
     }
     m_has_value = that.m_has_value;
@@ -127,23 +127,23 @@ public:
     return *this;
   }
 
-  template <class... Ts> void emplace(Ts &&...value_args) {
+  template<class... Ts> void emplace(Ts &&...value_args) {
     if (m_has_value) {
       m_value.~T();
       m_has_value = false;
     }
 
-    new (&m_value) T(std::forward<Ts>(value_args)...);
+    new(&m_value) T(std::forward<Ts>(value_args)...);
     m_has_value = true;
   }
 
-  template <class U, class... Ts>
+  template<class U, class... Ts>
   void emplace(std::initializer_list<U> ilist, Ts &&...value_args) {
     if (m_has_value) {
       m_value.~T();
       m_has_value = false;
     }
-    new (&m_value) T(ilist, std::forward<Ts>(value_args)...);
+    new(&m_value) T(ilist, std::forward<Ts>(value_args)...);
     m_has_value = true;
   }
 
@@ -280,7 +280,7 @@ public:
     return m_value <= that.m_value;
   }
 
-  template <class F>
+  template<class F>
   auto and_then(F &&f) const & -> std::remove_cvref_t<decltype(f(m_value))> {
     if (m_has_value) {
       return std::forward<F>(f)(m_value);
@@ -289,7 +289,7 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto and_then(F &&f) & -> std::remove_cvref_t<decltype(f(m_value))> {
     if (m_has_value) {
       return std::forward<F>(f)(m_value);
@@ -298,7 +298,7 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto and_then(F &&f) const && -> std::remove_cvref_t<decltype(f(m_value))> {
     if (m_has_value) {
       return std::forward<F>(f)(std::move(m_value));
@@ -307,7 +307,7 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto and_then(F &&f) && -> std::remove_cvref_t<decltype(f(m_value))> {
     if (m_has_value) {
       return std::forward<F>(f)(std::move(m_value));
@@ -316,7 +316,7 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto transform(
       F &&f) const & -> optional<std::remove_cvref_t<decltype(f(m_value))>> {
     if (m_has_value) {
@@ -326,7 +326,7 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto
   transform(F &&f) & -> optional<std::remove_cvref_t<decltype(f(m_value))>> {
     if (m_has_value) {
@@ -336,9 +336,9 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto transform(F &&f) const
-      && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
+  && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
     if (m_has_value) {
       return std::forward<F>(f)(std::move(m_value));
     } else {
@@ -346,9 +346,9 @@ public:
     }
   }
 
-  template <class F>
+  template<class F>
   auto transform(F &&f)
-      && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
+  && -> optional<std::remove_cvref_t<decltype(f(std::move(m_value)))>> {
     if (m_has_value) {
       return std::forward<F>(f)(std::move(m_value));
     } else {
@@ -356,8 +356,8 @@ public:
     }
   }
 
-  template <class F>
-    requires(std::is_move_constructible_v<T>)
+  template<class F>
+  requires(std::is_move_constructible_v<T>)
   auto or_else(F &&f) && -> optional {
     if (m_has_value) {
       return std::move(*this);
@@ -366,8 +366,8 @@ public:
     }
   }
 
-  template <class F>
-    requires(std::is_move_constructible_v<T>)
+  template<class F>
+  requires(std::is_move_constructible_v<T>)
   auto or_else(F &&f) const & -> optional {
     if (m_has_value) {
       return std::move(*this);
@@ -391,7 +391,7 @@ public:
   }
 };
 
-template <class T> auto make_optional(T value) {
+template<class T> auto make_optional(T value) {
   return optional<T>(std::move(value));
 }
 
