@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/test_unique_ptr.dir/tests/test_unique_ptr.cpp.o -o test_unique_ptr  -lgtest -lgtest_main -lpthread 

@@ -14,11 +14,11 @@ include_directories(${GTEST_INCLUDE_DIRS})
 file(GLOB TEST_SOURCES "tests/*.cpp")
 
 foreach (test_src ${TEST_SOURCES})
-    get_filename_component(test_name ${test_src} NAME_WE)
+  get_filename_component(test_name ${test_src} NAME_WE)
 
-    add_executable(${test_name} ${test_src})
+  add_executable(${test_name} ${test_src})
 
-    target_link_libraries(${test_name} ${GTEST_LIBRARIES} pthread)
+  target_link_libraries(${test_name} gtest gtest_main pthread)
 
-    add_test(NAME ${test_name} COMMAND ${test_name})
+  add_test(NAME ${test_name} COMMAND ${test_name})
 endforeach ()

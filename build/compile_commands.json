@@ -1,0 +1,26 @@
+[
+{
+  "directory": "/home/dylan/code/MySTL/build",
+  "command": "/usr/bin/c++  -I/home/dylan/code/MySTL/include -std=gnu++20 -o CMakeFiles/test_functional.dir/tests/test_functional.cpp.o -c /home/dylan/code/MySTL/tests/test_functional.cpp",
+  "file": "/home/dylan/code/MySTL/tests/test_functional.cpp",
+  "output": "CMakeFiles/test_functional.dir/tests/test_functional.cpp.o"
+},
+{
+  "directory": "/home/dylan/code/MySTL/build",
+  "command": "/usr/bin/c++  -I/home/dylan/code/MySTL/include -std=gnu++20 -o CMakeFiles/test_optional.dir/tests/test_optional.cpp.o -c /home/dylan/code/MySTL/tests/test_optional.cpp",
+  "file": "/home/dylan/code/MySTL/tests/test_optional.cpp",
+  "output": "CMakeFiles/test_optional.dir/tests/test_optional.cpp.o"
+},
+{
+  "directory": "/home/dylan/code/MySTL/build",
+  "command": "/usr/bin/c++  -I/home/dylan/code/MySTL/include -std=gnu++20 -o CMakeFiles/test_shared_ptr.dir/tests/test_shared_ptr.cpp.o -c /home/dylan/code/MySTL/tests/test_shared_ptr.cpp",
+  "file": "/home/dylan/code/MySTL/tests/test_shared_ptr.cpp",
+  "output": "CMakeFiles/test_shared_ptr.dir/tests/test_shared_ptr.cpp.o"
+},
+{
+  "directory": "/home/dylan/code/MySTL/build",
+  "command": "/usr/bin/c++  -I/home/dylan/code/MySTL/include -std=gnu++20 -o CMakeFiles/test_unique_ptr.dir/tests/test_unique_ptr.cpp.o -c /home/dylan/code/MySTL/tests/test_unique_ptr.cpp",
+  "file": "/home/dylan/code/MySTL/tests/test_unique_ptr.cpp",
+  "output": "CMakeFiles/test_unique_ptr.dir/tests/test_unique_ptr.cpp.o"
+}
+]
